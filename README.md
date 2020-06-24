@@ -1,156 +1,440 @@
-# TransportModeShare-CNN
-# Object detection based on deep convolutional neural networks for transportation mode share analysis
-![](https://tcs.teambition.net/storage/111t15940627f4ff94eb138dc4e8b2058bb5?Signature=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcHBJRCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9hcHBJZCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9vcmdhbml6YXRpb25JZCI6IjVkZGRmZjcxMzMwODBkMDAwMTZlODg2ZSIsImV4cCI6MTU5MDkzMDU4NywiaWF0IjoxNTkwMzI1Nzg3LCJyZXNvdXJjZSI6Ii9zdG9yYWdlLzExMXQxNTk0MDYyN2Y0ZmY5NGViMTM4ZGM0ZThiMjA1OGJiNSJ9.qiA2foyhIu472kdWkAhMRQTfPQePQ0Eu7situfLE9WY&download=image.png "")
 
-Supervised by  Dr Kerry Nice， the University of Melbourne
-School of Computing and Information Systems, Melbourne School of Engineering
-## This Project is under Transport, Health, Urban Design Research Hub (THUD), Melbourne School of Design.
-***
+2020Table of Contents
+Abstract	4
+Background	4
+Methods	4
+Results	4
+1. Introduction	5
+1.1 Motivations	5
+1.2 Contribution of the work	6
+2. Literature Review	8
+2.1 Convolutional Neural Networks	8
+2.2 Deep Resident Network	9
+2.3 One-stage & Two-stage Detection Methods	11
+2.4 Feature Pyramid Network	13
+2.5 Evaluation Criteria for Object Detection	14
+3. Transport Mode Share (TMS) Dataset from Google Street View Imagery	17
+3.1 Motivations	17
+3.2 Google Street View Imagery	19
+3.3 Data collection	19
+3.4 Dataset category	19
+3.5 Annotation Method	20
+3.7 Transport Mode Share Analysis based on TMS-Tokyo Dataset	23
+4. Methodology	25
+4.1 Data Augmentation	25
+4.2 Multi-scale Convolutional Neural Networks(MSCNN)	25
+4.3 Guided Anchoring	26
+4.4 Adaptive Training Sample Selection (ATSS)	27
+4.5 Joint Training Loss	28
+5. Experimental Results	29
+5.1 Evaluation Metrics	29
+5.2 Parameter Configurations	29
+5.3 Results of Single-class Cyclist Detection	29
+5.4 Multi-class object Detection on TMS-Tokyo Dataset	31
+6. Discussions	33
+6.1 Overload cost	33
+6.2 Limitations of bounding boxes	34
+6.3 Transport mode shares vary by regions	34
+7. Conclusions and Future Work	36
+7.1 Conclusion	36
+7.2 Future Work	36
+References	38
+Appendix	44
+
+
+
+Abstract
+Background
+Estimating city-level travel patterns by using street imagery proves to be a valid way according to a case study of using Google Street View in Britain(Goel et al., 2018). Google Street View Imagery is an emerging big data source which keeps growing and covers more than 97% of the world. Nevertheless, the previous study counts transport objects manually from GSV imagery, which is highly costly for both labour and time. Artificial intelligence has witnessed great progress in bridging the gap between humans and machines, which plays as an enabler of implementing complex tasks such as image processing efficiently. Here we propose a novel approach, which is a machine-learning based image recognition program, using computer vision technique and Street View Imagery to predict travel patterns. This paper concerns the development of transport mode detection and the scope of this research lies in transport object detection by deep learning.
+Methods
+We build a new dataset named Transport Mode Share-Tokyo(TMS-Tokyo) to serve the community for transport mode share analysis. We selected and filtered archived images which contain 50827 visible transport objects from GSV imagery of Tokyo. Furthermore, we manually annotated the images with bounding box annotations into 8 categories of target road users, which include car, pedestrians, bus, truck, motor, van, cyclist and parked cycle. Each GSV image is of the fixed size of 512×512 pixels which contains transport objects in diﬀerent scales on the road. We developed a distribution chart of eight transport modes and demonstrate a transport mode share analyse of Tokyo based on the statical results of TMS-Tokyo Dataset.
+This project developed two versions of the new Multi-scale Convolutional Neural Networks (MSCNN) model, MSCNN and MSCNN+ (which incorporated guided anchoring (GA) and ATSS). The MSCNN detection framework can effectively extract and fuse multi-level features empowered by UNet-like network, which is beneficial for simultaneously detecting multi-class objects in GSV imagery with large scale variability. Two strategies, GA (generating non-uniform anchors of arbitrary shapes),  and ATSS (automatically selecting positive and negative anchor boxes)  are utilized in our detection framework, which improves the detection accuracy by a large margin.
+Results
+Experiments were conducted on both Tsinghua-Daimler benchmark datasets for single-class transport object detection and self-built TMS- Tokyo dataset for multi-class transport object detection.  Two experimental results demonstrated that the proposed detection approach outperforms the conventional and some state-of-the-art detectors. The average precision (AP) of our proposed detector MSCNN+ achieved 86.3 on our TMS-Tokyo Dataset.
+
+
+
+
+
+
+
+
+
+
+
+
+1. Introduction
+1.1 Motivations
+As the world is rapidly urbanising, the conditions of cities and transport are changing rapidly. Research studies indicate that city transport conditions conduct a significant impact on future urban planning or the public health of the city community(Mueller et al., 2017). In response to this issue, it is required to analyse the transportation mode share to access travel patterns and transport use. Transport mode share is an essential reference for urban planning domain, served as a strategic method for the development of Smart Cities(Grimsrud & El-Geneidy, 2014). It is highly correlated with city type clustering and urban health, also it is related to the sustainability of urban planning and traffic management(Curtis et al., 2013). Currently, there are multiple ways to predict and analyse the transport mode share, however, due to the limitations of realistic factors, the accuracy of transport mode share remains unstable and is required to be improved(Goel et al., 2018). With the rapid change of modern urbanising progress, travel surveys are unable to collect timely data so that the analysis results don’t fit with current urban conditions(Nitsche et al., 2014). While traffic counts as another commonly used method could collect timely data, however, the data collection only involves limited areas of the city, therefore it is not representative for the whole community. Besides, collecting data in traditional methods requires researchers to collect on-site, which is also time-consuming and labour-intensive.
+Street view imagery has proved to be a promising data source that provides visual information of the streets worldwide in the form of panoramic images(Goel et al., 2018). Compared with the traditional methods of travel surveys, street view counts won’t miss collecting data and it is available to access across the world. Hence, street view counts can be a more cost-effective approach for transport mode share analysis. By detecting the number of cyclists and other transport objects from the imagery, it enables researchers to collect a large amount of transport data of the city. Google Street View (GSV) imagery, as an emerging big data source, can be used to estimate the travel patterns of 97% of the cities in the earth(Anguelov et al., 2010).  Previous research has proved that GSV images are promising data source for estimating city-level travel patterns by performing linear and multivariable regression analysis(Goel et al., 2018).
+However, previous research counted cyclist and other transport objects manually which is extremely costly and time-consuming. Hence, there is a strong demand to automate and scale up this counting process. To address this issue, thus machine learning and computer vision techniques could achieve the counting jobs automatically. Machine learning methods based on feature extraction and classification have achieved a high performance over the last decades and deep learning techniques has shown state-of-the-art performance in object detection and recognition tasks(Y. Zhao et al., 2019). Therefore, it is proposed to use Convolutional Neural Networks (CNNs) method to detect and count transport objects automatically to replace traditional process(Z. Deng et al., 2018). We will demonstrate and evaluate the automatic method based on deep convolutional neural networks for detecting and counting transport objects in street view imagery.   
+Object detection is a vital branch of Computer Vision domain, it aims to locate the exact locations of target objects from complex images and determine the specific category of every object by annotating the bounding box.  For industry applications, some objects of interest from the images are what people concern or focus on, thus object detection developed rapidly recently in the research area. Object detection task in street view images is to determine whether a street view image contains multiple transport objects belonging to the class of interest. The term ‘object’ used in this paper mainly refers to transportation objects (e.g. cyclists, cars, buses and trucks etc.) that have sharp boundaries and are independent of the background(Z. Deng et al., 2018). CNN-based detectors can be technical enablers with significant effort for transportation mode share analysis and applications. However, it is still a challenge due to the situations of occlusion, illumination, shadow, viewpoint variation, scale variation, and complicated background, etc.  Therefore, we specifically proposed deep learning techniques for Computer Vision (CV) and these methods are examined and later implemented to estimate the transportation mode share by detecting and counting the transport objects in the GSV images.
+Based on the previous research, our motivation is to further explore and exploit an object detection method with higher accuracy and efficiency, to achieve more encouraging performance for processing GSV images. Junyu and Ziyang (2019) proposed a novel application named Intersection Ratio (IR) which enables implementing moving car differentiation in a single static street view image, However, previous research indicate that there are still some limiting factors which inhibit the performance of the approaches for the model training. Previous studies also mentioned that designing a composite dataset from various sources is applicable to future work(Goel et al., 2018). To address this issue, we proposed to train our CNN model by our created dataset to examine and achieve a satisfying performance for future urban planning analysis. We illustrated the process models of traditional method and our innovative method by CNN detector for comparison as follows(Figure 1). 
+
+Figure 1: Process models of traditional counting method and CNN detection method
+The outline of this paper is organized as follows: 
+It is proposed to use the Convolutional Neural Networks (CNNs) as the main methodology of this research analysis for transport object detection(Leal-Taixé & Roth, 2019). The research experimental content is divided into two parts as two main tasks of object detection in different image conditions by deep learning algorithms. 
+ • The first section of our research applied single-class transport object detection method which includes both one-stage methods and two-stage methods of CNNs for the street view imagery. We examined and compared the results of one-stage methods and two-stage thus present the best-fitted algorithm for GSV images after comparison. 
+• For the second section of our research, we introduce our new created dataset based on Google Street View Imagery of Tokyo in the city level. We benchmark a variety of state-of-the-art object detectors on our created dataset TMS-Tokyo to detect multi-class transport objects in single street view image. 
+The two independent tasks are designed for different requirements of counting and quantitative evaluations in the future transport mode share analysis.
+
+1.2 Contribution of the work
+This research concentrate on the performance improvement of single-class and multi-class transport object detection by using deep learning-based methods. The transport object detection and counting will automate the previous manual counting processes of the street view imagery thus improve the effectiveness and efficiency of the studies. The data samples collected by automation counting method after scaled up by machine learning will help optimize and improve the transport mode share analysis. By using machine learning, especially deep learning method, this research will be able to further evaluate and analyze the influence of urban transport mode share to the communities. 
+To be more specific, the main contributions of this paper are:
+To the best of our knowledge, TMS-Tokyo is the largest annotated transport object dataset with aimed categories for urban mobility. It has high potential and achievement to develop and examine detectors designed for road users. Based on the counting of our dataset annotations, the travel pattern of Tokyo in the city-level is developed and illustrated for transport mode share analysis, which is a vital reference for the urban mobility research. To adopt and reflect evolving urban transport conditions, and to interpret more city patterns, we aim to continue to update TMS Dataset to extend it in size and scope, by involving more various cities in a global scope.
+We proposed two CNN-based object detectors named Multi-Scale Convolutional Neural Networks and Multi-Scale Convolutional Neural Networks+ (MSCNN+) specifically designed for transport object detection task. By integrating guided anchoring (GA) and Adaptive Training Sample Selection (ATSS), our MSCNN+ detection framework can generate multi-scale feature maps with high-level semantic information in high resolution. We evaluate the proposed and a variety of advanced object detection frameworks on Tsinghua-Daimler Cyclist Dataset and TMS-Tokyo Dataset respectively, as baselines for future research development on transport mode detection. The proposed method MSCNN+ demonstrated state-of-the-art performance on both street-view datasets, which indicates its great capability of dealing with street-view object detection tasks. 
+2. Literature Review
+This research mainly focuses on the domain of Computer Vision, which refers to a specific subfield of Artificial Intelligence and machine learning. To address the technical issues raised by transport mode share, our research combined deep learning techniques with Transport Mode Detection (TMD). As previous studies have proved that TMD solutions can be implemented by machine learning(Goel et al., 2018), our literature reviews fall in the field of computer vision and convolutional neural networks specifically, to explore a better approach of this solution(Ahmed et al., 2019). 
+In this section, the characteristics and environment under which CNN is designed are described. We will provide in this section basic technologies and metrics which are essential for the understanding of fundamental architecture and subsequent results. 
+2.1 Convolutional Neural Networks
+In response to the issue, Convolutional Neural Networks are proposed to implement object detection tasks. According to previous studies(Kalchbrenner et al., 2014). CNNs are widely used for different solutions and have shown outstanding performance for a variety of scenarios of image processing and object detection(Z. J. Wang et al., 2020). Furthermore, the development of CNNs is exploited rapidly as current global research studies optimize and implement the algorithms constantly(Saha, 2018). In the next section, a brief review of the concepts of convolutional neural networks is given with special regard to object detection task. 
+An RGB image is separated by three colours planes-Green, Red and Blue and they form to be the 3 channels of an original image. The height and width of the image are evaluated by its pixel units, as shown in Figure 4. Overall, an image is computationally intensive once it reaches dimensions to calculate. Therefore, ConvNet becomes an enabler for machines to reduce the images into a form which is less difficult to process and predict without losing image features(Kalchbrenner et al., 2014).
+
+Figure 2: Image Dimensions = Height * Width * Number of Channels(Zhou, 2018)
+Convolutional neural networks are one kind of artificial neural networks of multiple layers, the main principles of this network are local field, shared weights and subsampling(Z. J. Wang et al., 2020). Normally CNN consists of a convolutional layer, a pooling layer, an incentive layer and a fully connected layer. 
+The convolutional layer is the core of convolutional neural networks, its main function is to extract plentiful information from the images used for subsequent related tasks of computer vision. An image is regarded as a matrix of pixel values. However, the situation becomes complicated at the moment it encounters complex images with pixel independencies throughout. This layer carries out convolution operation by driving the convolutional kernel slide on the input features and extract information with a certain stride. Fig. 5 describes the procedure of convolutioning a 5*5*1 image with a 3*3 kernel. In this trial, the objective is to generate a 3*3*1 convolved feature. The orange-filled grid represents a convolution kernel and we assume that it carries out a convolution operation with a stride size of 1. This kernel slides to the right side with the fixed stride till it parses the complete width, then it moves on from the left side of next row of the pixel height and repeats the shifts with the same stride and process until the entire image is traversed(Z. J. Wang et al., 2020). There are 9 weights in the convolutional kernel which are the parameters that the networks are required to learn. 
+
+Figure 3: Convoluting a 5*5*1 image with a 3*3*1 kernel(Ngiam et al., 2011).
+During every movement of the convolution kernel, a matrix multiplication operation is implemented between pixels in the selected matrix and the corresponding weights of the kernel.  For images with multiple channels, the kernel and the input image shared the same depth and all the results are summed to obtain a one-depth convoluted feature output as shown in Figure 3. Each convolution is a feature extraction approach, regarded as a filter, which extracts features from the image. Since the convolution operation is a linear transformation, to add a non-linear transformation to the model, an excitation layer is normally added after the convolution operation. The stimulus functions commonly applied in the stimulus layer include Sigmoid, Tanh, ReLU functions, and various variants of the ReLU function(Z. J. Wang et al., 2020). ReLU is frequently deployed as an activation function for neural networks design, and the equation of ReLU is defined as follows:
+
+The Pooling layer is for downsampling features or pictures(Scherer et al., 2010). Because the pooling operation has translation invariance, while reducing the overall parameters of the network, it also avoids overfitting to a certain extent, which can enhance the robustness of the network. Furthermore, in terms of rotational and positional invariance, it effectively extracts dominant features without interrupting the training of the model(Ryu et al., 2018). The operation of the pooling layer scans the input features in a similar way to the convolution operation and calculates the values ​​in each pooling area, which both are responsible for the reduction of the spatial size of the convolved feature. There are a variety of pooling methods in convolutional neural networks, and the most commonly used are Average pooling and max pooling(Scherer et al., 2010). Maximum pooling aims to return the output of the maximum value of all values ​​in the pooled area, while average pooling tends to generate the output of the average value of all values ​​in the pooled area. Notably, the pooled area is the portion of the image covered by the kernel.
+
+Figure 5: Max pooling and average pooling(Zhou, 2018)
+In traditional convolutional neural network models, the fully connected layer is frequently used as the final layer of the whole network. Each node in the fully connected layer is connected to all the nodes in the previous layer and is used to connect the features extracted in the front(K. He et al., 2014; Ryu et al., 2018). Due to its fully-connected nature, the fully-connected layer normally has the largest number of parameters thus it caused the most amount of calculation(Kalchbrenner et al., 2014). One particular function of full connection is dimensional transformation, especially high-dimensional to low-dimensional while retaining useful information. In terms of the final layer of full connection, it is a display expression of classification(Leal-Taixé & Roth, 2019). 
+2.2 Deep Resident Network
+The depth of the convolutional neural network is critical to the performance of the model. In 2012, Krizhevsky et al (2012) promoted Deep Convolutional Neural Network(DCNN), which performs better than traditional hand-crafted architecture on ImageNet for the first time(J. Deng et al., 2009).  They proposed a new architecture named AlexNet, which consists of 8 neural network layers, 5 convolutional layers and 3 fully-connected layers(Alom et al., 2018). AlexNet applied the fundamental concepts of typical convolutional neural networks, as it designed a convolutional layer with an activation function then pursued by a max pooling and multiplied it to reach a deep network(Krizhevsky et al., 2012). 
+The additional layers have accredited the most of successful implementations of DCNN, which credits to its capability to learn more complex features progressively. Notably, when the number of network layers is increased, the network can obtain better results theoretically with the extraction of complex feature patterns. However, experiments have demonstrated that as deep convolutional networks become deeper, a degradation problem occurs during the training period: when the depth of the network increases, the accuracy of the network saturates or even decreases. This study indicates that deep convolutional neural networks commonly have the problem of gradient vanishing or gradient exploding, which makes it difficult to train models with too many layers. Furthermore, He et al (2016) conducted an empirical experiment to demonstrate that a maximum threshold exists for depth of CNN model as shown in Fig 8, plotting the training and test error of a 20-layer CNN versus 56-layer CNN. This plot defies our previous theory that only overfitting would attribute to the failure of training, it infers that adding extra unnecessary layers might also cause higher training error and test error to the network. 
+
+Figure 6: Traning error and test error of 56-layer vs 20-layer(K. He et al., 2016)
+In response to this problem, Kaiming He and his team members(K. He et al., 2016) proposed a new network structure called Deep Residual Network (ResNet), which has alleviated the issue on training very deep networks. This network allows researchers to design their architecture very deeply, within this network a new neural network layer is introduced: The Residual Block (Figure 9). 
+
+Figure 7: Residual Block(K. He et al., 2016)
+As shown in the figure, the data passes through two routes: one is a regular route of traditional function and the other is a ‘shortcut’. The ‘shortcut’ directly implements the unit mapping route, which is regarded as identity mapping. There are no parameters in the identity mapping, instead, it directly adds the output from the previous layer to the layer ahead(K. He et al., 2016). Through previous experiments, this structure with identity mapping can indeed deal with the degradation problem very well. 
+Considering the relationship between the input and output of a module within the network as y = H (x), then finding H (x) directly through the gradient method will encounter the network degradation problem we mentioned earlier. After adding this structure with skip connection, the optimization goal of the variable parameter part is no longer H (x). F (x) is applied to represent the part which requires optimization, then H (x) = F (x) + x, which is F (x) = H (x) -x. Because in the assumption of unit mapping, y = x is equivalent to the observed value. F (x) refers to the residual, thus it is named as a residual network(H.-Y. Chang & Wu, 2019). 
+
+Moreover, the experiment results imply that learning F(x) is more feasible rather than learning H(x) directly, as learning F(X) only requires to learn the difference between input and output. Besides, the absolute quantity turned to be a relative quantity, thus the optimization becomes more feasible as well. The Skip Connection between layers enabled the ability to train a much deeper network, which is virtually impossible in the previous studies. 
+2.3 One-stage & Two-stage Detection Methods
+Recently, deep learning methods have encouraging characterization and modelling ability to learn hierarchical feature representation automatically, thus they have been widely concerned and achieved promising performance. Characterized by outstanding feature learning and classification ability of DCNN model, the detector based on fast region convolutional neural network is frequently applied as a detection framework(Ahmed et al., 2019). Nevertheless, some single-stage detectors are also popularized as they are much faster and simpler compared with two-stage methods despite their lower accuracy. In our article, we adopt both approaches to evaluate the performance of different algorithms. 
+2.2.1 Two-stage Detection Methods
+Currently, most of the two-stage methods are based on the milestone of Faster R-CNN(Ren et al., 2016a). Region-based convolutional neural network R-CNN is the initial architecture that inspires Faster R-CNN, which explore the regions of interests and passes them to a convolutional neural network(Girshick et al., 2014). R-CNN tends to explore the areas that might involve an object and identify and localize objects by combining region proposals with CNNs. R-CNN has been a reference model in recent years, however, it has the constraint of inputting ﬁxed-sized images and the algorithm speed needed to be increased. To eliminate the above limitation, He et al raised a proposal of spatial pyramid pooling network (SPP-net), which enables the network to generate fixed-sized outputs from arbitrarily sized images(K. He et al., 2014). Nevertheless, there are also notable drawbacks within SPP-net, the training process is still overweighted as it is a multi-stage pipeline(H. Zhang et al., 2018). 
+
+Figure 8: Example of search selective. Source: J.R.R. Uijlings and al. (2012)
+Fast R-CNN evolves based on the progress of R-CNN and SSP-Net(Girshick, 2015). Instead of applying hundreds of times to proposed areas, it simply passes the original image to a pre-trained network once for end-to-end training. Search Selective is still adopted to compute based on the output feature map of the previous step(Uijlings et al., 2013). Fast R-CNN adopts a Region-of-Interest (RoI) pooling layer and multi-task loss to estimate observed object classes by a softmax classifier and predict the bounding box localisations by linear regressor respectively(H. Zhang et al., 2018). 
+In light of Fast R-CNN, He et al. proposed Faster R-CNN which employs a new network named Region Proposal Network (RPN)(2016). Typical detection processes are extremely time-consuming on generating detection frames. For instance, OpenCV AdaBoost deploys a sliding window and an image pyramid to produce detection frames. Whereas Faster R-CNN abandons the traditional approach and Search Selective instead it directly deploys RPN to generate detection frames. This is a great advancement for Faster R-CNN, which significantly increases the speed of the detection task. RPN shares full-image convolutional images with the network which efficiently reduced detection processing time. Figure 3 is shown below to illustrate the architecture of Faster R-CNN and its innovative network RPN. 
+
+Figure 9: the architecture of Faster R-CNN and its innovative network RPN(Ren, He, Girshick, & Sun, 2016)
+Most of the recent research is developed based on Faster R-CNN, there are quite a few advanced algorithms which enhance Faster R-CNN by proposing different architecture through various aspects(Lin et al., 2017). For instance, Feature Pyramid Networks (FPN) resolved the scale variance through pyramidal predictions. Cascade R-CNN extended Faster R-CNN by adding another stage into the architecture to become a multi-stage detector(Cai & Vasconcelos, 2017). Mask R-CNN reshaped the bounding box by proposing a mask branch by instance segmentation and becomes a classic milestone for another branch(K. He et al., 2018). Libra R-CNN explicitly alleviates the imbalance at the objective level, feature level and sample level by using an overall balanced design, which integrates three novel components(Pang et al., 2019). Double-Head R-CNN proposed a two-head structure which divided the classification task and bounding box regression to fully connected head and convolution head by their preference(Wu et al., 2020). These methods and other proposed components introduced in this article have made significant progress through different concerns and scenarios. 
+Generally speaking, the approach of two-stage detector is to first select objects by Selective Search(Uijlings et al., 2013). The process of selecting objects is called Region Proposal, then object recognition is performed on the selected objects to generate target regions in the first stage(Ren, He, Girshick, & Sun, 2016). However, due to the selected size of the objects may be different, so object recognition may only be classified, or it may include feature extraction plus classification during the training period. The network then passes the region proposals through the pipeline to implement object classification and bounding box regression tasks. This method of finding the Region Proposal and then identifying it is often called two-stage detectors, which normally obtain the highest accuracy but commonly slower than the one-stage method. 
+2.2.2 One-stage Detection Methods
+On the other side, single-stage object detectors are popularized by YOLO (You Only Look Once) and SSD (Single Shot MultiBox Detector), that regard object detection as a simple regression task(Liu et al., 2016; Redmon et al., 2016). Single-stage detectors take an input image and learn the class probabilities and bounding box coordinates respectively(Liu et al., 2016). Redmon (2015) designs YOLO (You Only Look Once) to require only one forward propagation to make predictions and can provide the output of recognized objects and bounding boxes. Therefore, it achieves high accuracy while also being able to operate in real-time. However, YOLO is based on the one-stage method and it performs poorly when detecting objects in edge areas. Moreover, the introduction of one-stage method FCOS has outperformed the accuracy both in one-stage and two-stage methods, which leads to more potential for single-stage methods(Tian et al., 2019). In 2019, FCOS is proposed as a classic anchor-free method and demonstrate a simple and flexible framework. Fully Convolutional One-Stage Object Detection (FCOS) avoids complicated computation and hyper-parameters adjustment related to anchor boxes completely. 
+In this chapter, we will briefly introduce our adopted baseline detectors which include a variety of advanced one-stage and two-stage methods for performance comparison and evaluation.
+Due to these advantages, our research is implemented over these state-of-the-art detectors. Inspired by their proposals, our proposed method is introduced in chapter 4, which achieves state-of-the-art performance. Notably, the aforementioned deep CNN-based models are generally inhibited by the reliance on generating class object regions and repetitive CNN computations. Besides, these supervised network frameworks always rely on large amounts of training data with manual annotation in large-scale image sets. The cost of annotating objects is typically very high. 
+2.4 Feature Pyramid Network
+In the domain of computer vision, multi-dimensional object detection has always used reduced or enlarged pictures of different dimensions as input to generate feature combinations that reflect the information of different dimensions. This method can effectively express the various dimensional features on the picture, however, it has high requirements for hardware computing power and memory size, so it can only be used within a limited field. Besides, it is not sufficient to improve accuracy by generating more anchors on a single high-resolution feature map layer(Lin et al., 2017). Previous research has avoided using feature pyramid as a basic component in recognition systems for detecting objects until the introduction of FPN(Pattern Recognition and Computer Vision, 1984).
+To address this issue, FAIR proposed a top-down architecture with lateral connections to create high-level semantic feature maps at all scales(S. Chang et al., 2020), the inherent multi-scale pyramidal hierarchy of deep convolutional networks is exploited, to construct feature pyramids with marginal cost(Sheng Zhang et al., 2020).
+
+Figure 10: The illustration comparison of conventional architectures and FPN(Lin et al., 2017)
+FPN is a generic feature extractor based on the design of pyramid concept to efficiently generate feature expressions of various dimensions in a single picture(Lin et al., 2017). FPN proposes a method that can effectively generate multi-dimensional feature expressions in a single picture view by using different levels of feature expression structures of the same scale picture. 
+FPN composes of a bottom-up and a top-down pathway shown in Figure 10. The bottom-up pathway plays as a role of usual ConvNet for feature extraction, then the spatial resolution decreases as the data forwards to the upper level gradually. The semantic value for each layer increases when more high-level structures are detected within the model. Furthermore, FPN provides a top-down path to build higher resolution layers from semantically rich layers. After conducting all down-sampling and up-sampling, lateral links are added between the reconstructed layer and the corresponding feature map to facilitate more precise prediction of location by the detector, as shown in Figure 11 below(Lin et al., 2017).
+
+Figure 11 Adding lateral connections to the network(Lin et al., 2017)
+It effectively empowers conventional ConvNet models by providing better quality information than regular feature pyramid, therefore it can generate more expressive feature maps for the next stage of computer vision tasks such as object detection or semantic segmentation. In essence, it is a method to strengthen the CNN feature expression of the backbone network.
+2.5 Evaluation Criteria for Object Detection
+2.5.1 IoU
+In the previous section, the basic architectural components of ConvNet are introduced to see how a single object can be detected in an image. 
+A simple box is plotted around the target object in the image when it is detected named bounding boxes. The bounding box is (x-y) coordinates of the target object within the image, which distinctively defined objects’ categories and locations in the image(Rezatofighi et al., 2019). The bounding boxes around the objects predicted by deep learning models are called Predicted Boundary Box as shown in Figure 10. 
+
+Figure 12: Boundary Box Representation (Green bounding box is Primary Boundary Box, Red Bounding Box is Predicted Boundary Box)(Sandeep, 2019)
+Like all machine learning tasks, prediction of bounding box requires an accuracy metric to interpret how accurate the predictions are. In this section, an accuracy metric called IoU is discussed which is used for Object Detection(Z. J. Wang et al., 2020).
+
+Figure 13: Area of Intersection (Left) and Area of Union (Right)(Sandeep, 2019)
+Intersection over Union (IoU) is widely used in object detection domain, it is used to reflect the quality of the prediction frame which ranges from 0 to 1(Rezatofighi et al., 2019). The formula of IoU is as follows:
+
+The closer the value is to 1, the more the predicted target frame and the real target frame fit. In general settings, IoU greater than 0.5 (when the category prediction is correct) is selected as the correct prediction box as the threshold. (Figure 12)
+
+Figure 14:     Bad Prediction: IoU=0.35           Good Prediction : IoU=0.74       Excellent Prediction: IoU=0.93(Sandeep, 2019)
+In reality, the output of the predicted bounding box can't be the exact primary bounding box. Therefore, the metric IoU is applied to measure how accurate is the object detected in the image, which provides value to evaluate whether the object detection is complete. IoU is a simple approach to evaluate the performance of our training model with a bounding box on the test dataset(Rezatofighi et al., 2019). 
+2.5.2 PR Curve (Precision & Recall)
+For object detection task, accuracy is not regarded as an adequate metric for assessing model performance(Davis & Goadrich, 2006). To deal with an imbalanced classification problem, it is essential to identify all the positive cases in the dataset based on the theory of statistics: Precision & Recall(Flach & Kull, 2015). Therefore, we classify all the detection cases into four categories based on the conventions(Shifeng Zhang et al., 2020):
+True positive (TP): The prediction is classified as positive by the model and the true value of the data point is positive.
+True negative (TN): The prediction is negative and the true value is negative.
+False positive (FP): The prediction is positive but the true value is negative.
+False negative (FN): The prediction is negative but the true value is positive.
+Recall is typically defined as the amount of true positives occupies within the amount of true positives and false negatives(Flach & Kull, 2015). Recall is considered as a model’s capability to identify all the relevant instances within a dataset. 
+
+
+‘Precision is defined as the formula below(Flach & Kull, 2015). While recall indicates the ability to find all the data points of interest in a dataset, precision expresses the proportion of the data points that ground truth is positively predicted by the model.
+
+
+The PR curve sets recall as the horizontal axis and precision as the vertical axis(Davis & Goadrich, 2006). To evaluate the performance of a classifier, a promising method is to observe the changes in the Precision and Recall values when the threshold changes. The performance increased as the curve convex more to the upper right. If Recall value increases while Precision value still keeps at a very high level, it indicates that the performance of the classifier is promising according to the criteria. A classifier with poor performance may lose many Precision values in exchange for an increase in the Recall value. Classically, object detection task uses Precision-recall curves to show the trade-off between classifiers between Precision and Recall(Davis & Goadrich, 2006).
+2.5.3 AP & mAP
+Average Precision(AP) refers to the area under the PR curve(Flach & Kull, 2015). Compared with the curve graph, a specific value can more intuitively represent the performance of the classifier. Normally, Average Precision is applied as the metrics of performance, the formula is as follows:
+
+In this integration, where p is Precision, r is Recall, and p is a function that takes r as a parameter. This integral is very similar to this value: for each threshold value (Precision value) is multiplied by (Recall value changes), and then the product value obtained under all threshold values ​​is accumulated. 
+
+In this formula, N represents the number of all pictures in the test set, and P (k) represents the number of pictures that can be identified in k. The value of Precision is Delta (∆), and Delta r (k) represents the change in the Recall value when the number of recognition pictures changes from k-1 to k (by adjusting the threshold), thus the model output requires confidence in prediction in addition to the coordinates and categories(Lin et al., 2015).
+This article adopts the MS Common Objects in Context (COCO) mAP calculation standard as the metric, which can effectively quantify the performance of the target detection model. COCO is a large-scale object detection dataset with multiple features, there are 12 metrics are used for characterizing the performance of an object detector on COCO(Lin et al., 2015). Specifically, AP is averaged over all categories in COCO format, which is traditionally called "mean average precision" (mAP). 
+The mAP is applied to examine the overall performance of multi-class detectors, measuring the performance of the detector in all categories, that is, to obtain the AP value of each category and then taking the average of all categories. The formula of mAP is:
+
+COCO offers six metrics of AP calculations, while three of these metrics threshold the Bounding Box at multiple IoUs:
+Average Precision (AP)(Lin et al., 2015):
+AP: AP at IoU= 0.50: 0.05: 0.95 (primary challenge metric)
+AP@IoU=0.5 (PASCAL VOC metric)
+AP@IoU=0.75 (Strict metric, IoU of BBs > 0.75)
+In this article, to assign the output detections to ground-truth objects, we employed the PASCAL VOC metric as the threshold the experiments, which indicates the area of IoU overlap must exceed 0.5(Lin et al., 2015).
+3. Transport Mode Share (TMS) Dataset from Google Street View Imagery
+3.1 Motivations
+3.1.1 Demand for building a new dataset
+There are a variety of street-view datasets in the computer vision domain for research purposes, which mainly focus on detecting road users for autonomous driving. These open-source databases reflect diversity and richness in terms of category types and sample sizes. However, urban mobility modelling needs cannot be satisfied with existed datasets due to their ineligible sample categories captured with different ratios. Hence, in order to reach our final goal of analysing travel patterns at the city level, a specified dataset which contains limited categories of road users is required. To be more specific, there are multiple limitations within the existed datasets:
+The data source for creating a new dataset is commonly difficult to obtain for researchers. To create a dataset, it often requires humans to collect image data by professional digital tools under specific conditions. For instance, Tsinghua Daimler Dataset is captured by a vehicle-mounted stereo vision camera during regular traffic conditions, which would be expensive and time-consuming for individual researchers or non-industry partners to complete(Xiaofei Li et al., 2016).  Moreover, restricted by the ethical issues of data collection, resources are limited for research purpose(Adams & Ferryman, 2015). Therefore, it is essential to find an open-source big data source which covers representative groups for collection. 
+Most of the state-of-the-art detectors are trained and evaluated based on the performance on benchmark dataset (i.e. COCO, VOC.) However, due to the initial design intentions of the detectors differs for different situations, the algorithm performance varies under different scenarios, thus it is not feasible to rely solely on the performance of common benchmark dataset. To implement our empirical study and further travel patterns analysis, it is necessary to examine the performance of object detectors on Google Street View imagery.
+In response to the issues above, we created a dataset which collects images from Google Street View which is a large-scale big data source of street view images and examines multiple detection models on our dataset simultaneously. 
+To advance and extend transport object detection research in street view scenes, this chapter introduces a large-scale street-view imagery dataset named Transport Mode Share-Tokyo Dataset (TMS-Tokyo). We collect and filter 33461 street-view images from the Google Street View Imagery in Tokyo, each image is in the size of 512 × 512 pixels. We annotated in total 50827 instances concerning 8 common road user categories, every target object is labelled with a horizontal bounding box by an annotation software called labelme. Then We transferred the annotation format into VOC style for evaluation purpose. Horizontal bounding boxes are used due to its typically applied for road user annotation in natural street view scenes.
+3.1.2 Comparision of Existing Datasets 
+Object detection is a vital task to be addressed in the computer vision area while challenging large datasets are instrumental and promote research progress greatly in the domain of computer vision. There are already some open-source transport object datasets, such as the KITTI (Geiger et al., 2012) and Tsinghua-Daimler (Xiaofei Li et al., 2016), which push forward the development of multi-class transport object detection. Although a large-scale street-view dataset that covers the great variability of transport objects is in high demand, there is no challenging GSV dataset of road users available yet, except the Cityscape object detection benchmark as shown in Figure 15(Cordts et al., 2016). However, the amount of each class instance in Cityscape dataset is limited(Geiger et al., 2012). For instance, the number of cyclist samples is less than 3000 in the training set, which is not sufﬁcient for deep learning training(Xiaofei Li et al., 2016). Therefore, a public dataset which contains a large quantity of multi-class samples is required to avoid underfitting and improve generalization of the algorithms. Besides, existing annotated dataset such as CityScape tend to involve images with a different ratio from GSV Imagery and under different conditions(light-dense travel patterns in European cities), which is not able to interpret the complexity of the street views(Goel et al., 2018). Nevertheless, there are various Google Street View datasets publicly, few focus on the transport objects or road users of GSV images(Anguelov et al., 2010). 
+
+Figure 15: Examples of CityScape’s fine annotations in high-quality dense pixel(Cordts et al., 2016)
+In order to analyse transport mode share efficiently and effectively, an open-source data source that involves all of the defined classes of interest is urgently demanded. Goel et al (2018) investigated that GSV is a valid data source for city-level travel pattern modelling, then Junyu (2019) in the previous study provided a further direction that current results are limited by the number of annotated images and more image samples are able to optimize the results. 
+We proudly introduce a public street-view dataset collected from city-level GSV images, which contained tremendous multi-class annotated transport instances. Goel et al (2018) argued that presented models indicate that GSV images can be deployed as predictors of various population-based measures of transport, thus we choose Tokyo as the target city for data collection. We name this dataset as Transport Mode Share-Tokyo (TMS-Tokyo) according to the reasons that it is created for transport mode share analysis and it is based on city-level street-view imagery in Tokyo.
+Table 1. Comparison of relative street-view image dataset for transport objects. BBox is short for bounding box
+
+In order to examine our proposed detector, a transport object detection dataset is presented by us, which supplements the public GSV dataset with a richly labelled GSV dataset of Tokyo. We draw a comparison among TMS-Tokyo, Tsinghua-Daimler Cyclist Benchmark(Xiaofei Li et al., 2016), KITTI(Geiger et al., 2012), CityScape(Cordts et al., 2016) and other benchmark transport dataset to show the diﬀerences in Table 1.
+Datasets are addressed as an essential factor in computer vision research. Large datasets like MSCOCO (Lin et al., 2015) or ImageNet(J. Deng et al., 2009) have made great promotions for object detection research and developing deep learning algorithms these years. However, as our research aimed at transport mode share, a public dataset in terms of focused categories of road users has been missing, it also becomes an obstacle for AI-enabled travel pattern analysis. Therefore, a large-scale street-view dataset at the city level can be instrumental in advancing both computer vision and urban mobility research, which enable TMS dataset unique in the aforementioned areas.
+3.2 Google Street View Imagery
+Google Street View imagery is collected by Street View cars and trekkers which contains millions of images worldwide. Currently, Google has collected more than 10 million miles of Street View imagery, which covers more than 98% of the entire population on earth(Anguelov et al., 2010). 
+Google gathers imagery by multiple approaches, such as cars, trekkers, flocks of sheep and laser beams. The imagery is gathered through more than 1,000 third-party sources worldwide. Although street view imagery is static, one major concern of analysing travel patterns through imagery is the fast changes of the city situations due to policy and other factors. In order to keep up with the pace of the quick changes of the street views, Google vet authoritative data sources to correct the map for inaccuracies. Local Guides and Google Maps users also served as the system community who helps correct the map through feedbacks(Anguelov et al., 2010). 
+Google Street View Imagery eliminates the difficulty of capturing a high-resolution perspective view of the scene with rich colour and texture information, it enables gathering accurate, timely and representative mobility data, which is a trivial task for researchers(Anguelov et al., 2010).
+3.3 Data collection
+We utilised 60,000 GSV images of Tokyo adapted from Middel et al. ( 2019). Google Street View imagery contains visual information in the form of panoramic images, and Tokyo has more than 60000 GSV images from different locations(Anguelov et al., 2010; Curtis et al., 2013). There are six images from each location corresponding to the six headings where GSV panoramas are available to obtain. The six directions of the camera refer to the different views observed from a car/pedestrian standing on the street: right, left, front, back, top(mostly sky view), and bottom (looking at the ground), which contribute a 360 degree panoramic GSV image(Goel et al., 2018). Nevertheless, it is impossible to detect transport objects from the top view and bottom view which are towards the sky and the ground, thus we filtered the images from these two views. 
+Even though Tokyo is well-known for its dense transportation, there are still quite a few images with no road users observed(Oka et al., 2019). Therefore, we filtered images with no instances of interest while annotating, and form more-informative imagery to generate a public dataset for detector training purpose, which will also speed up the counting and estimation of transport mode share for machines. Additionally, we source the geographical grid coordinates of each location to ensure that no duplicate images are annotated and counted.
+For ethical considerations, all the license plate information of the vehicles detected in the street view images has been blurred during the filming process to protect the personal information of the citizens.
+3.4 Dataset category
+In order to present our data on travel patterns, we classified the different types of road users by observing street view images of Tokyo. 
+When dividing the categories, we separated parked cycles from cyclists, because parked cycles in the Tokyo dataset occupy a significant weight in the Google Street View Imagery of Tokyo. However, there is no division in the category of motorcycles vs. motorcyclists. The distinction between parked cycle and moving cycle is pretty clear from the images, as there are no riders on the parked cycles, thus we followed the approach by previous studies and included two different categories for cycles as shown in Figure 16.
+Different from Goel’s study(Goel et al., 2018), we make a distinction for the vehicles that are classified as for commercial use-we divided vans/trucks as two different categories as they have distinct appearances for an automatic detector. Vans usually four-wheel and side-chartered car bodies, which are significantly larger in width and height than ordinary cars, plus there is no protruding warehouse body before and after. While trucks normally shared protruding warehouse bodies and they visually differs from other vehicles. 
+In total, we decided to set 8 categories of road users in total for later annotations: car, pedestrians, bus, truck, motor, van, cyclist and parked cycle.
 
-# Summary
+(a)                                               (b)
 
-- Connection with previous research progress
+(c)                                           (d)
+Figure 16: Four typical samples from our dataset: (a)Cyclist (b)Parked cycle (c)van (d)truck
+3.5 Annotation Method
+Different approaches of annotating are considered for this dataset. The commonly used approach in computer vision is bounding box annotation, which is used to annotate various visual concepts such as objects and attributes(Xia et al., 2019). A bounding box is normally described as (x, y, w. h), where (x, y) refers to the centre location of the image, w, h represents the width and heights of the bounding box in the picture coordinate system respectively. Horizontal bounding boxes are more adequate for objects without various orientations compared with oriented bounding boxes. For transport objects from street view, target objects are perpendicular to the street ground from the observation, which matches with horizontal bounding boxes. 
+To facilitate image observations and the accuracy of annotations, we created a Cloud document with 8 representative images of all target objects, in order to illustrate different samples of target categories for later annotation work. We divided the data annotation work among 8 research assistants. We teach them to identify and annotate images with horizontal bounding box by labelme through sharing Cloud documentation for reference(Goel et al., 2018). Further, we randomly picked some samples from each one’s finalised JSON files and reassessed them accordingly. By this approach, we verified their quality accurateness of annotations and classifications. An excerpt of the eight illustrated transport mode samples is shown in Fig. 17.
 
-- Transport Object Detector: MSCNN+
 
-- TMS-Dataset
 
-- Future Work
 
-***
 
-## Can we use streetview to predict  city leveltravel patterns?
 
-![](https://tcs.teambition.net/storage/111t688ba44e3506696a57c023890a2cb7b2?Signature=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcHBJRCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9hcHBJZCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9vcmdhbml6YXRpb25JZCI6IjVkZGRmZjcxMzMwODBkMDAwMTZlODg2ZSIsImV4cCI6MTU5MDkzMDc3MCwiaWF0IjoxNTkwMzI1OTcwLCJyZXNvdXJjZSI6Ii9zdG9yYWdlLzExMXQ2ODhiYTQ0ZTM1MDY2OTZhNTdjMDIzODkwYTJjYjdiMiJ9.b65R9fz5c40KHRkTpFM_NFQMtVxt9ZxYWh2kEm8QEd8&download=image.png "")
+Figure 17: An excerpt of the eight illustrated transport mode samples with annotations
+Different from aerial images, natural street-view images only contain several instances at most. For google street view imagery of Tokyo, TMS-Tokyo only contains at most 10 instances per image. Therefore, it is not common to see areas densely crowded with instances compared with other dense datasets(Xia et al., 2019). Based on the demand of transport object counting, instances are annotated individually to distinguish from other instances in the image. However, there are some cases where some transport objects are hard to label due to occlusions or tiny objects. We summarised all the difficult situations in noisy situations. We assumed that these samples under noisy situations are difficult to be labelled so we filtered those samples with significant occlusions, some examples of noisy situations are shown in figure 18. 
 
-> Goel R, Garcia LMT,Goodman A, Johnson R, Aldred R, et al. (2018) Estimating city-level travel patterns usingstreet imagery: A case study of using Google Street View in Britain. PLOS ONE13(5): e0196521. [__https://doi.org/10.1371/journal.pone.0196521__](https://doi.org/10.1371/journal.pone.0196521)
+(a)                                     (b)                                       (c)
+Figure 18: (a) some parked cycles are hard to be labelled (b) a truck is occluded by another truck (c) car occlusion
+3.7 Transport Mode Share Analysis based on TMS-Tokyo Dataset
+In this context, we manually annotated the bounding boxes from 33461 Google Street View images for a total of 50827 labelled transport objects of eight categories. 
+Each GSV image is of the fixed size of 512×512 pixels which contains transport objects in diﬀerent scales on the road. The fully labelled dataset contains 50827 instances in total, each of them is labelled by a yellow axis-aligned bounding box, which is commonly used for object labels in natural scenes like street views. 
+Table 2. Statistical Results of transport modes of eight categories in Tokyo
 
-![](https://tcs.teambition.net/storage/111t723db6e2a19281d286334fbca8b3095f?Signature=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcHBJRCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9hcHBJZCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9vcmdhbml6YXRpb25JZCI6IjVkZGRmZjcxMzMwODBkMDAwMTZlODg2ZSIsImV4cCI6MTU5MDkzMDgwMSwiaWF0IjoxNTkwMzI2MDAxLCJyZXNvdXJjZSI6Ii9zdG9yYWdlLzExMXQ3MjNkYjZlMmExOTI4MWQyODYzMzRmYmNhOGIzMDk1ZiJ9.dcVpMhUa4L3xYkDonk36n4mop00xAjDYBb8cBIBjR-I&download=image.png "")
+Our dataset contains a huge amount of 8 defined classes of transport objects varying widely in appearance, scale, occlusion and viewpoints. We defined our target categories of road users as car, pedestrians, bus, truck, motor, van, cyclist and parked cycle by reviewing the common transport modes that frequently appear in Tokyo. Notably, single instances of road users are annotated individually. We count the amount of each category respectively based on the statistical results during annotation processes, and we illustrate the transport mode share of Tokyo based on the counting results by Pie Chart. The Pie chart of our model is illustrated as follows:
+Table 3. Modelling Chart of Tokyo Transport Mode Share 
 
-## What is Convolutional NeuralNetworks?
+According to the results of the model, removing of errors caused by manual annotations, the vulnerable road users (VRUs) occupy only 21% of the population, which contain pedestrian, cyclist and parked cycles. Parked cycles are taken into counting because they might be potentially vulnerable road users of cyclists. Uneven distributions of road user instances are demonstrated on our model results of the Tokyo transport mode share. 
+Therefore, as the main contribution of this paper, a practical and richly annotated transport object dataset for transport mode share analysis is introduced to the public. We are also considering updating and develop TMS-Tokyo, to involve more cities worldwide and reflect evolving travel patterns of different cities. We will upload this dataset in the public platform for non-commercial purposes to encourage future research for the community. 
+4. Methodology
+4.1 Data Augmentation
+In order to increase the robustness of our algorithm, we applied data augmentation technique into our frameworks to achieve better performance, which involves image brightness, cropping, rotation and flipping(Perez & Wang, 2017). For initial neural networks, the intelligence level is not satisfying in performing detection tasks. For instance, undertrained neural networks would define the same object in different locations as different and unique pictures. In transport mode share analysis, the same transport object that is translated would be classified as different categories for neural networks. This issue normally occurs due to the reason that the dataset is not large enough for training neural networks. Therefore, to get more data and avoid this situation, we applied data augmentation into our model to enlarge the existing benchmark dataset by rotations (flips), translations, rotations, an instance in play is illustrated in the figure below(Raj, 2018).  
 
-[__https://github.com/cloudybai/cnn-explainer#cnn-explainer__](https://github.com/cloudybai/cnn-explainer#cnn-explainer)
+Figure 19: Data augmentation for training neural networks(Image from GSV Tokyo)
+For street view imagery, the street view backgrounds can be various and complicated in different locations and scenes. Road users often appear in different orientations, positions, scaling, brightness. As our target applications exist in various conditions, it is required to apply the data augmentation technique in our pipeline. Data augmentation technique increases the amount of relevant data in our benchmark dataset thus it prevents neural networks from learning irrelevant features, radically improving overall performance according to our experiments. 
+Photometric distortion, random cropping, random flipping and random rotation are used in our experiments. Photometric distortion changes the brightness, contrast, saturation of the image. Random cropping is then performed, and when cropping removes part of the target from the image, the image is either cropped again or discarded to ensure that the target is not distorted after cropping. The image has a 50 per cent chance of being flipped. and has a 50 per cent chance of rotating at any angle from 0 to 180 degrees.
+4.2 Multi-scale Convolutional Neural Networks(MSCNN)
+Extracting semantic features efficiently from GSV images is crucial to the deep learning-based object detection methods. Appropriate semantic features can distinguish objects from the complex background. We design and propose a Multi-scale Convolutional Neural Networks(MSCNN) in this project as our detection framework for transport mode detection. We use pretrained ResNet-101(K. He et al., 2016) in ImageNet classification datasets as our backbone. ResNet-101 achieves promising performance in classification, yet the sizes of final feature maps are only 1/16 of original images. Although final feature maps have high-level semantic information, it loses more detailed information during several pooling operations, especially location semantic segment task that requires both high-level semantic information and high resolution, which is similar to the demand for object detection, we introduce the network structure of UNet(Ronneberger et al., 2015). As shown in Fig. 20, {C2, C3, C4, C5} donates the feature maps of ResNet-101, the outputs of last residual blocks for every stage. While feature fusion processing, we double the size of the coarse-resolution feature map by nearest neighbour upsampling and concatenate the upsampling feature map with corresponded lower level feature map. A 3×3 convolution and a 1×1 convolution are used to fuse the feature maps and reduce the number of feature map channels. Undergoing three iterations, we merge high-level semantic information into the low-level feature map then expend the resolution of feature maps gradually. To recognize various scales of objects, we utilize multi-level feature maps as the input of anchor-based regression and classification networks. The final set of feature maps is defined as {P2, P3, P4}, and we append a 1×1 convolution to equalize the channel numbers of the feature maps.
 
-
-
-***
-
-## My Project Structure
-
-- Part1:  Single-class transport objectdetection (Cyclists)
-
-- Part2: Multi-classtransport object detection
-
-|                       |   Single Class Object Detection   |   Multi Class Object Detection   |
-| --------------------- | --------------------------------- | -------------------------------- |
-|   Category            |   Cyclists                        |   8  classes road users          |
-|   Dataset             |   Tsinghua-Daimler                |   GSV  Tokyo                     |
-|   CNN  Model          |   ATSS                            |   Guided  Anchoring              |
-|   Samples  Location   |   Beijing                         |   Tokyo                          |
-|   Performance(mAP)    |   78%                             |   85.7%                          |
-
-
-
-***
-
-## ToolBox
-
-[__https://github.com/cloudybai/mmdetection__](https://github.com/cloudybai/mmdetection)
-
-***
-
-### Part 1 Single-class Cyclist Detection
-
-> Tsinghua-DaimlerCyclist Dataset
-
-![](https://tcs.teambition.net/storage/111t8d0ffa89e172058911462adcf2ab6035?Signature=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcHBJRCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9hcHBJZCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9vcmdhbml6YXRpb25JZCI6IjVkZGRmZjcxMzMwODBkMDAwMTZlODg2ZSIsImV4cCI6MTU5MDkzMTExNiwiaWF0IjoxNTkwMzI2MzE2LCJyZXNvdXJjZSI6Ii9zdG9yYWdlLzExMXQ4ZDBmZmE4OWUxNzIwNTg5MTE0NjJhZGNmMmFiNjAzNSJ9.1MqqbPVkRoWwgPaCdvKzfCYXsm6ah6E3e7px5xM0tds&download=image.png "")
-
-|   Dataset  Statistics   |   Training   |   Validation   |   Test    |   Non-VRU   |   Total   |
-| ----------------------- | ------------ | -------------- | --------- | ----------- | --------- |
-|   Image  Frames         |   9741       |   1019         |   2914    |   1000      |   14674   |
-|   Cyclist  BBs          |   16202      |   1314         |   4657    |   0         |   22173   |
-|   Pedestrain  BBs       |   0          |   1541         |   7401    |   0         |   8942    |
-|   Other  rider BBs      |   0          |   190          |   1105    |   0         |   1295    |
-|   Total  BBs            |   16202      |   3045         |   13163   |   0         |   32410   |
-
-### Methodology
-
-ATSS (Adaptive Training SampleSelection)
-
-![](https://tcs.teambition.net/storage/111tcb5fad2fda01e90d1801831e3a7a9977?Signature=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcHBJRCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9hcHBJZCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9vcmdhbml6YXRpb25JZCI6IjVkZGRmZjcxMzMwODBkMDAwMTZlODg2ZSIsImV4cCI6MTU5MDkzMTE1MywiaWF0IjoxNTkwMzI2MzUzLCJyZXNvdXJjZSI6Ii9zdG9yYWdlLzExMXRjYjVmYWQyZmRhMDFlOTBkMTgwMTgzMWUzYTdhOTk3NyJ9.4OLBzvdQS7l0JIFAW0MxNBChKxYUa9WMpSIaanh37Dk&download=image.png "")
-
-***
-
-### Part2: Multi-class transport object detection
-
-![](https://tcs.teambition.net/storage/111tcc23eb123de25ba5bca4f6bd62769497?Signature=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcHBJRCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9hcHBJZCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9vcmdhbml6YXRpb25JZCI6IjVkZGRmZjcxMzMwODBkMDAwMTZlODg2ZSIsImV4cCI6MTU5MDkzMTE5MiwiaWF0IjoxNTkwMzI2MzkyLCJyZXNvdXJjZSI6Ii9zdG9yYWdlLzExMXRjYzIzZWIxMjNkZTI1YmE1YmNhNGY2YmQ2Mjc2OTQ5NyJ9.y7nn4gUOQ49IIpqd5Tta4yEP48FZP76v47cRtZ9G2SM&download=image.png "")
-
-### GSV Tokyo Dataset Overview
-
-- Number of Instances: 50827
-
-- Image size: 512*512
-
-- Eight categories: __car, pedestrians, bus, truck, motor, van, cyclist andparked cycle.__
-
-- Division of dataset
-
-- Number of training sam:19803
-
-- Number of val sam:6601
-
-- Number of test sam:6601
-
-- Total: 33461
-
-![](https://tcs.teambition.net/storage/111t8f1849b9eaa6f1c31d7d9923ad08cad9?Signature=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcHBJRCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9hcHBJZCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9vcmdhbml6YXRpb25JZCI6IjVkZGRmZjcxMzMwODBkMDAwMTZlODg2ZSIsImV4cCI6MTU5MDkzMTI5OCwiaWF0IjoxNTkwMzI2NDk4LCJyZXNvdXJjZSI6Ii9zdG9yYWdlLzExMXQ4ZjE4NDliOWVhYTZmMWMzMWQ3ZDk5MjNhZDA4Y2FkOSJ9.EyCdW_PjgUq_g4VFBEBkM3OvfJfXBTC97LODXN-yXqY&download=image.png "")
-
-***
-
-> **Guided Anchoring**
-
-![](https://tcs.teambition.net/storage/111te7ba0dfadc43934daefc7b430f8dccf4?Signature=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcHBJRCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9hcHBJZCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9vcmdhbml6YXRpb25JZCI6IjVkZGRmZjcxMzMwODBkMDAwMTZlODg2ZSIsImV4cCI6MTU5MDkzMTMzNSwiaWF0IjoxNTkwMzI2NTM1LCJyZXNvdXJjZSI6Ii9zdG9yYWdlLzExMXRlN2JhMGRmYWRjNDM5MzRkYWVmYzdiNDMwZjhkY2NmNCJ9.9jnzToWvPy5fJI3QVCAHamIy13RNYx-I8ufEpqXN0x4&download=image.png "")
-
-![](https://tcs.teambition.net/storage/111t2b95eff5b4dd96085ff502dab0d9c6ba?Signature=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcHBJRCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9hcHBJZCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9vcmdhbml6YXRpb25JZCI6IjVkZGRmZjcxMzMwODBkMDAwMTZlODg2ZSIsImV4cCI6MTU5MDkzMTM1NCwiaWF0IjoxNTkwMzI2NTU0LCJyZXNvdXJjZSI6Ii9zdG9yYWdlLzExMXQyYjk1ZWZmNWI0ZGQ5NjA4NWZmNTAyZGFiMGQ5YzZiYSJ9.SLv2BnZ-ke5KP9kj-mwXHioRJwd_GNtOuoY8jaOlxHA&download=image.png "")
-
-***
-
-|                       |   mAP     |   Time per image/s   |   Issues                                                                     |
-| --------------------- | --------- | -------------------- | ---------------------------------------------------------------------------- |
-|   Faster R-CNN        |   0.832   |   0.08935            |   •Multiple detection frames for the  same target  •few GT frames detected   |
-|   ATSS                |   0.848   |   0.06860            |   Detected unlabeled targets                                                 |
-|   Libra R-CNN         |   0.839   |   0.15861            |   Few GT frames detected                                                     |
-|   Guided  Anchoring   |   0.857   |   0.12988            |   Detected unlabeled targets                                                 |
-
-***
-
-## Exsiting Issues and discussions:
-
-![](https://tcs.teambition.net/storage/111t76d7b876b6488d8a250fcf55f23b1458?Signature=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcHBJRCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9hcHBJZCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9vcmdhbml6YXRpb25JZCI6IjVkZGRmZjcxMzMwODBkMDAwMTZlODg2ZSIsImV4cCI6MTU5MDkzMTQzNSwiaWF0IjoxNTkwMzI2NjM1LCJyZXNvdXJjZSI6Ii9zdG9yYWdlLzExMXQ3NmQ3Yjg3NmI2NDg4ZDhhMjUwZmNmNTVmMjNiMTQ1OCJ9._g9Y26ClSspwXtJOtEGjkKICkGBzcUhh8K8Nyde17k8&download=image.png "")
-
-
-
-![](https://tcs.teambition.net/storage/111tb2b92298815f8d780a09f8ef9477aee1?Signature=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcHBJRCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9hcHBJZCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9vcmdhbml6YXRpb25JZCI6IjVkZGRmZjcxMzMwODBkMDAwMTZlODg2ZSIsImV4cCI6MTU5MDkzMTUyMSwiaWF0IjoxNTkwMzI2NzIxLCJyZXNvdXJjZSI6Ii9zdG9yYWdlLzExMXRiMmI5MjI5ODgxNWY4ZDc4MGEwOWY4ZWY5NDc3YWVlMSJ9.pYTyc--dv2VXDFQ9WegJt_P5lkVNZlVBIfbSb27D1-4&download=image.png "")
-
-
-
-__**How to get more labelled datawithout so much manual workload? **__
-
-# Weakly Supervised Deep Learning
-
-![](https://tcs.teambition.net/storage/111t762650f70e10b43f03201b21cf03da38?Signature=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcHBJRCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9hcHBJZCI6IjU5Mzc3MGZmODM5NjMyMDAyZTAzNThmMSIsIl9vcmdhbml6YXRpb25JZCI6IjVkZGRmZjcxMzMwODBkMDAwMTZlODg2ZSIsImV4cCI6MTU5MDkzMTU2NCwiaWF0IjoxNTkwMzI2NzY0LCJyZXNvdXJjZSI6Ii9zdG9yYWdlLzExMXQ3NjI2NTBmNzBlMTBiNDNmMDMyMDFiMjFjZjAzZGEzOCJ9.sYOGymMryxSFWiwGmAt7a7jojMtzd35AopZ5U0SgWcg&download=image.png "")
-
-***
-
-# My Project Contribution
-
-- Build Pytorch and mmdetection toolbox for efficient experiments
-
-- We proposed anadvanced approach for street-view transport object detection.
-
-- Createa new street-view dataset by GSV Tokyo images for Computer Vision Community
-
-- Proposed Weakly supervised learning method as a direction for future work
-
+Figure 20: The architecture of UNet-like multi-scale CNN.
+4.3 Guided Anchoring
+The anchor is manually designed as a set of typical reference frames used for classification and regression of object detection. Anchor strategy is widely deployed in both one-stage and two-stage detectors. However, for current anchor design, there are two major inhibitors during the procedure: 
+Anchor algorithm needs to be designed particularly, and it cannot cover special situations if the target object is in extra size. 
+To maintain a high recall rate, a large quantity of anchors is demanded, most of which are negative useless samples. 
+Regional anchors are an important cornerstone of object detection methods at the current stage. Most state-of-the-art detectors rely on the anchor mechanism, which employs predefined dimensions and sizes in spatial locations to conduct uniform sampling.
+Wang et al proposed a new method to generate anchors called Guided Anchoring(GA), which is based on the Image features to guide the generation of anchors(J. Wang et al., 2019). Generate sparse and arbitrary anchors by predicting the position and shape of the anchors respectively, with the design of Feature Adaption module to modify the feature map so that it can match with the anchor shape more closely. The concept of Guided anchoring is illustrated in the figure below:
+
+Figure 21: An illustration of Guided anchoring framework(J. Wang et al., 2019)
+In anchor design, alignment and consistency are two vital criteria. The key concept of GA is to optimize the region proposal networks thus it can obtain a higher quality of the anchors(J. Wang et al., 2019). Therefore, it improves recall effectively and achieved state-of-the-art performance. Inspired by the concept of Guided anchoring, we deployed this module into our proposed network to improve the performance on detection.
+4.4 Adaptive Training Sample Selection (ATSS)
+In anchor-based detectors, the anchor boxes can be viewed as training samples(Shifeng Zhang et al., 2020). During the period of training the detector, positive and negative samples are first needed to define for classification, while positive samples are used for regression prediction. In previous works, they often use IoU between anchor boxes and ground-truth boxes to determine the label of a training sample, i.e. an anchor box. These hyper-parameters have shown a great impact on the detection result, thus need to be carefully tuned. Here, we adopt the adaptive training sample selection  (Shifeng Zhang et al., 2020) strategy, which can automatically set the IoU threshold and select positive and negative samples according to object statistical characteristics. The work process of ATSS is described as follows. 
+On each feature pyramid level, for each ground-truth box  on the image, anchor boxes are selected as candidate positive samples set , whose centres are closest to the centre of  based on L2 distance. Then, the IoU between  and  is computed as
+
+Next, the mean and standard deviation of are computed as
+
+
+According to these statistics, the IoU threshold for this ground-truth  is obtained as(Shifeng Zhang et al., 2020):
+=+.
+Finally, the candidates whose values of IoU are greater than or equal to , and whose centres are in ground-truth box are chosen as final positive samples. When an anchor is assigned to multiple ground-truth boxes, the one who obtained the highest IoU will be selected, while the rest are negative samples(Shifeng Zhang et al., 2020).
+ATSS not only points out that the fundamental difference between different designed methods comes mainly from the choice of positive and negative samples but also proves that setting multiple anchors per position is a useless operation. The algorithm structure of ATSS is illustrated in the Appendix.
+4.5 Joint Training Loss
+In the proposed detection framework, we adopt a multi-task joint loss to optimize the model in an end-to-end way. The overall joint loss function of our detector is expressed as follows:
+
+
+
+where   and are the conventional classification and regression losses respectively(Girshick, 2015), and  and   are two additional  losses for the anchor location and anchor shape prediction(J. Wang et al., 2019) , and  and are weights for them.   and  are computed according to focal loss(Lin et al., 2018),   and  are smooth L1 loss (fastrcnn). Particulary,   is computed as follows:
+
+
+
+where (w,h) denotes the predicted anchor shape, (, ) denotes the shape of the corresponding ground-truth bounding box. 
+
+
+5. Experimental Results
+5.1 Evaluation Metrics
+We implement all experiments and evaluate our detector on the Tsinghua-Daimler Cyclist Benchmark(Xiaofei Li et al., 2016) and TMS-Tokyo respectively. We resize the images based on the original image resolution of the datasets. For single-class cyclist detection task, the result reports follow the standard COCO-style(Lin et al., 2015). Our Average Precision (AP) metrics include AP (AP at IoU= 0.50: 0.05: 0.95), AP50 (IoU threshold over than 50%), AP75 (IoU threshold over than 75%). APS, APM, APL are also included, which refer to the results on small, medium and large scales respectively. 
+We employed the PASCAL VOC metric (AP50) as the criteria of the multi-class transport object detection to better visualize the mAP results for each category.
+5.2 Parameter Configurations
+We implement all the experiments on PyTorch(Paszke et al., 2019) and mmdetection(Chen et al., 2019) to compare models fairly and equally. mmdetection is open-source Pytorch toolbox specially designed for object detection tasks. All object detection frameworks are sourced and collated under one system by its modular design. It decomposed the detection framework into different components so the frameworks are able to be evaluated under a fixed environment(Chen et al., 2019). We used ResNet-101 as our backbone in our experiments. We set = 1 and = 0.1 in the joint loss function. The default learning rate of mmdetection is set as 0.02 for 8 GPUs thus we trained our detectors with a single GPU for 12 epochs with an initial learning rate of 0.005. We deployed the weight decay of 0.0001 and momentum of 0.9. All other hyper-parameters in accordance with the default setting of mmdetection if not specifically noted.
+5.3 Results of Single-class Cyclist Detection 
+During the period before we completing annotating the TMS-Tokyo Dataset, experiments of our proposed method are essential for performance evaluations. In this section, we present our experimental study on cyclist detection first to benchmark and examine our proposed object detector with other baselines which demonstrated promising results currently. Faster R-CNN, Libra R-CNN and SSD are considered as benchmark models due to their advanced progress on object detection. Tsinghua-Daimler Cyclist Benchmark(Xiaofei Li et al., 2016), which is specially designed to serve as a typical point of reference in relative field research, is adopted as our training dataset for performance evaluation. We performed our experiments on Tsinghua-Daimler Cyclist Benchmark dataset and evaluated their average precision (AP) as metrics of performance.
+5.3.1 Tsinghua-Daimler Cyclist Benchmark
+According to the previous study, the investigation of relationships between GSV observations of road users and travel patterns indicates that among observations of different kinds of road users, cyclists are strong predictors(Goel et al., 2018). Besides, our approaches are aimed to understand the cyclist injury issues by the analysis of urban road environment. Protecting vulnerable road users (VRUs) is an emerging issue to be addressed. Therefore, we highlighted our single-class transport object detection on cyclists to further contribute to the cyclist safety and injury prevention research(H. Zhao et al., 2019)
+Table 4 statistical information of Tsinghua-Daimler Cyclist Benchmark(Xiaofei Li et al., 2016)
+
+
+We sought for an open-source large scale dataset that concentrated on the defined class of interest ‘cyclist’ from a similar ratio of GSV observation by trekkers(Anguelov et al., 2010). Tsinghua-Daimler Cyclist Benchmark is eventually adopted as our reference, which contains a large number of cyclist annotations within for suitable research purpose(Xiaofei Li et al., 2016). The pictures in this benchmark dataset by a vision camera in the car which drove through at regular city traffic conditions in different days. The northern district of Beijing city is chosen for data collection due to its relatively high concentration of cyclists. The image resolution is of 2048 × 1024 pixels with a baseline of 20cm(Xiaofei Li et al., 2016). Figure 22 provides an overview of this benchmark dataset while Table 4 illustrates statistical information of Tsinghua-Daimler Cyclist Benchmark.
+
+Figure 22: An Overview of the Tsinghua-Daimler Cyclist Benchmark. (a)Cyclist samples; (b)Test images with annotations: green bounding boxes indicate cyclists specifically(Xiaofei Li et al., 2016).
+5.3.2 Experimental Results of Cyclist Detection
+We compare our proposed MSCNN model and MSCNN with GA and ATSS (abbreviated as MSCNN+) model with typical object detectors on the Tsinghua-Daimler Cyclist Benchmark in Tabel 5. Apart from the initial framework, we further evolve MSCNN by integrating two modules Guided anchoring and ATSS, which achieved higher results based on the performance of MSCNN. MSCNN+ achieves 82.6 AP50 with ResNet-101, which is higher than Faster R-CNN and other classical object detectors. Without bells and whistles, our proposed model MSCNN+ obtained state-of-the-art performance which indicates its great capability on detecting road users with high accuracy.
+According to the experimental results, the detectors we employed are highly capable of detecting cyclists. We applied the object detection frameworks to multi-class transport object detection in the next section.
+Table 5: Performance comparison with typical one-stage and two-stage detectors
+
+
+
+
+
+
+
+
+AP (AP at IoU= 0.50: 0.05: 0.95), AP50 (IoU threshold over than 50%), AP75 (IoU threshold over than 75%). APS, APM, APL refer to the results on small, medium and large scales respectively.
+
+
+
+5.4 Multi-class object Detection on TMS-Tokyo Dataset
+In the previous section, experiments based on cyclist detection implemented based on Tsinghua-Daimler Cyclist Benchmark. We achieved promising performance on cyclist detection by our proposed method MSCNN+, which reached 82.6 on AP50. The single-class object detection is addressed as a typical reference for our final goal of evaluating the performance of our multi-class transport object detector.
+For multi-class transport object detection task, we examined our proposed detectors with other baselines on TMS-Tokyo Dataset. During the experiments, after careful considerations, SSD, FCOS, Faster R-CNN, Libra R-CNN are selected as our tested models due to their encouraging performance on cyclist detection. 
+5.4.1 Dataset Splits
+Based on the conventions of data distributions, we randomly picked 1/6 of the original images as the /6training sample sub-dataset, 1/2 as a validation dataset, and 1/2 as the testing set to ensure an approximate match. All sets are provided with original images and bounding box ground truth for future method evaluation and visualization. 
+5.4.2 Experimental Results of Multi-class transport object detection
+Followed the same procedure of single-class object detection, we further evaluate our proposed models with classical object detectors on TMS-Tokyo Dataset in Tabel 6. Through its balanced design, MSCNN+ achieves 86.3 on AP with ResNet-101, which is significantly higher on mAP than other baseline object detectors. 
+Table 6: Numerical results (AP) of proposed CNN models
+
+
+Figure 23: Average Precision by clustered column
+As can be seen from the experimental diagrams, the accuracy of each model varies across categories. Judged by mean Average Precision (mAP), MSCNN+ significantly outperforms its mAP among other baselines. MSCNN+, which is proposed as a single-stage object detection method, outperforms among typical one-stage and two-stage methods. From this perspective, MSCNN+ is addressed as the most promising transport object detector which contributed to its overall efficiency and effectiveness. Part of our fine-quality detection samples from the test output is illustrated in the figure below. The yellow boxes around the target objects represent our pre-annotated ground truth, while the green boxes represent the detection results that our detector produced.
+The experimental results indicate that our proposed model MSCNN owns the ability to detect and count road users in the urban phase, however, the deep learning algorithm can be further improved to achieve greater precision and efficiency. The results indicate that current detectors perform various on different transport modes, especially not satisfying on van vehicles. The uneven performance of different categories remains an issue for further algorithm development to tackle. Here we illustrate some visualization results of the state-of-the-art model MSCNN+.
+
+   
+                      
+    
+Figure 24: Visualization detection results of test set on TMS-Tokyo using our trained model MSCNN+ (Yellow boxes show ground truth annotations. Green boxes show model predictions.)
+6. Discussions 
+6.1 Overload cost
+Recently, the real-world impact of Machine learning (ML) has a growing impact on the real world in leaps and bounds. It depends largely on the advance of deep learning methods, which enable researchers to achieve state-of-the-art performance on different datasets. With the support of multiple available DL frameworks like TensorFlow and PyTorch, and an abundance of open-source advanced deep learning models, high-quality detection methods are common and public resource to address real-world issues now. However, there is a hidden catch that massive hand-annotated training data is the reliance on these state-of-the-art methods(Zhou, 2018).
+Traditional detectors rely on supervised learning, which indicates the detector needs to compute the predictions of both object locations and classifications. The computational cost of image processing under supervised learning is costly and tricky for GPUs, especially for multi-class objects. Supervised learning method builds a prediction model by learning a large quantity of road user samples, where each training sample has a label that indicates its true value output. Although the current deep learning tools have achieved promising success, we noted that it mainly due to the extremely high cost of the data labelling procedure, hence it becomes an obstacle to obtain strong supervision information like all truth-value labels(Han et al., 2015; Zhou, 2018).
+According to our experiments and evaluations, existing street-view detectors highly rely on bounding box annotations to train deep convolutional neural networks. However, the object volume of Google Street View is very large, it greatly inhibits the possibility to generate annotations for training(Anguelov et al., 2010; Curtis et al., 2013; Goel et al., 2018). To explore further studies on different cities in the worldwide, the workload and the volume of GSV images for researchers to annotate worldwide are tremendous, which are impossible to label all the images for detectors. 
+6.2 Limitations of bounding boxes
+Our database deploys the bounding box method to annotate road users in Google Street View images. The bounding box approach is appropriate for non-intensive traffic situations when only a few traffic objects can be detected from one single image. However, this method cannot achieve complete and accurate labelling performance when target objects are obscured, occluded or clustered. For crowded objects, multiple bounding boxes tend to overlap when annotated manually under dense traffic conditions, which is not conducive to the machine's detection and training.
+
+Figure 25: An image sample of crowded transport objects from our dataset
+In the case of multiple traffic targets grouped in a single street view image, it is difficult for the detector to accurately detect each object and conduct the correct classification. This inhibitor will undoubtedly end up affecting our modelling of traffic patterns as shown in the figure above.
+6.3 Transport mode shares vary by regions
+The establishment of transportation modes depends mainly on the size and density of the city's population, the size and density of land, and the level of economic development(He M. et al., 2019). Cities or regions with relatively large population size and high population density emphasize the development of high-capacity public transportation (including rail transit, rapid transit, and other modes of transportation). The determination of transport modes is generally determined by the level of socio-economic development, competition in transport modes, etc., in addition to transport policy, policy guidance will also Influence people's choice of transport mode, therefore, the government chooses the appropriate mode of transport development according to the city's particular situation.
+The travel pattern is the structure of the traffic mode formed under the specific conditions of land layout, population density, economic level and social environment, namely the proportional distribution of the number of trips undertaken by the various modes of transport(Oka et al., 2019). Hence, the transport mode share varies in different countries or regions due to customs, culture, policies and geographic conditions. Influenced by external factors, our dataset categories may not be able to cover the urban transport mode shares of other countries or regions adequately. As different cities might share different backgrounds or detection environment, the detection results of deep learning frameworks might vary as well. Therefore, other cities are required for empirical analysis of detection validation.
+7. Conclusions and Future Work
+7.1 Conclusion
+In conclusion, this paper proposed an innovative approach by using deep learning technique to detect and count transport object from the Google Street View imagery to estimate city-level travel patterns. Overall, we conducted single-class cyclist detection and multi-class transport object detection to reach our final destination: transport mode detection and city-level travel pattern analysis. We examined and experimented with a variety of advanced deep learning object detection frameworks, to evaluate and compare their performance. We found out that our proposed model MSCNN+ achieved encouraging performance efficiently, as it achieved the highest results of 86.3 on mAP on our TMS-Tokyo dataset.
+We proudly introduce our created GSV imagery dataset named TMS-Tokyo for the first time. It involves 8 categories of road users which contain 50827 instances and 33461 images in total. As far as we know, this is the first annotated Google Street View dataset specially designed for transport object detection and transport mode share analysis. Based on the counting results of our annotation, we modelled and illustrated the urban mobility pattern of Tokyo. Nevertheless, one major contribution of this project lies in the open-source publishment of our TMS-Tokyo Dataset, which serves as a benchmark dataset for transport mode share analysis and estimation in the global scope for the community. 
+Compared with previous work, we implement our advanced deep learning frameworks and significantly improved the performance on Google Street View Imagery. The underlying conclusion is convolutional neural network methods with deep learning techniques hold the potential to implement the predictions of travel patterns worldwide.
+7.2 Future Work
+We discussed several existing issues and limitations in the previous chapter. To address the aforementioned emerging problems, we provided multiple future directions as below:
+1. Weakly-Supervised Deep Learning for Object Detection
+For traditional scene datasets, each scene only contains one kind of target object with varied backgrounds. Scene tags will only record the class type of the target object in the scene image and any information about the location and number etc is excluded(Han et al., 2015). Besides, scenes shared with the same scene tag commonly involve target objects in different situations with varied object information. It’s certainly effective and efficient to train street-view transport object detectors, however, the learning process needs to deal with multiple challenges as the majority of information is not provided during the training process. 
+
+Figure 26: An illustration of the core distinction between other approaches and weak supervision at a high-level.
+Inspired by the observation that scene-level tags can address the presence of objects as well, a weakly supervised deep learning (WSDL) method for multi-class transport object detection could be addressed as our alternative future direction, which reduced the cost significantly by applying scene-level tags only. The advantage of weakly supervised learning lies in the full and effective use of data while reducing the workload of labelling. Instead of taking scenes as isolated ones, weakly supervision which exploits the separate scene category information of road users might be suitable for our demand. This method aims to pursue superior performance with efficiency while training deep networks. 
+2.Extension of TMS Dataset 
+As we discussed in the previous section, bounding box annotation cannot handle the high overlap of traffic objects of interest in the street view images, so adopting image segmentation will enable the detectors to generate the output of pixel-wise masks of the target objects by annotating the borders of the target road users(Felzenszwalb & Huttenlocher, 2004; Jianbo Shi & Malik, 2000). Mask annotations will improve the accuracy of transport object counting results and tackle the issue of the bounding box method that the overlapped situations are unable for labelling(K. He et al., 2018). There is also the potential to transform bounding box labels to mask labels automatically, which will be considered in our future work.
+We also consider extending our dataset to involve more various cities from different regions and countries. For instance, the travel patterns of Taipei and New York Cities have significant differences based on mobility data(He M. et al., 2019). The street-view backgrounds also vary due to the different geographical environments and culture factors(Middel et al., 2019; Nitsche et al., 2014), thus the performance of our detector needs to be validated on other cities’ Google Street View Imagery. Training on different GSV datasets of different cities will improve the generalization and robustness of our proposed model.
+References
+Adams, A. A., & Ferryman, J. M. (2015). The future of video analytics for surveillance and its ethical implications. Security Journal, 28(3), 272–289. https://doi.org/10.1057/sj.2012.48
+Ahmed, S., Huda, M. N., Rajbhandari, S., Saha, C., Elshaw, M., & Kanarachos, S. (2019). Pedestrian and Cyclist Detection and Intent Estimation for Autonomous Vehicles: A Survey. Applied Sciences, 9(11), 2335. https://doi.org/10.3390/app9112335
+Alom, M. Z., Taha, T. M., Yakopcic, C., Westberg, S., Sidike, P., Nasrin, M. S., Van Esesn, B. C., Awwal, A. A. S., & Asari, V. K. (2018). The History Began from AlexNet: A Comprehensive Survey on Deep Learning Approaches. ArXiv:1803.01164 [Cs]. http://arxiv.org/abs/1803.01164
+Anguelov, D., Dulong, C., Filip, D., Frueh, C., Lafon, S., Lyon, R., Ogale, A., Vincent, L., & Weaver, J. (2010). Google Street View: Capturing the World at Street Level. Computer, 43(6), 32–38. https://doi.org/10.1109/MC.2010.170
+Cai, Z., & Vasconcelos, N. (2017). Cascade R-CNN: Delving into High Quality Object Detection. ArXiv:1712.00726 [Cs]. http://arxiv.org/abs/1712.00726
+Chang, H.-Y., & Wu, C.-L. (2019). Deep Learning Method to Classification Human Protein Atlas. 2019 IEEE International Conference on Consumer Electronics - Taiwan (ICCE-TW), 1–2. https://doi.org/10.1109/ICCE-TW46550.2019.8991768
+Chang, S., Zhang, Y., Zhang, F., Zhao, X., Huang, S., Feng, Z., & Wei, Z. (2020). Spatial Attention Fusion for Obstacle Detection Using MmWave Radar and Vision Sensor. Sensors, 20(4), 956. https://doi.org/10.3390/s20040956
+Chen, K., Wang, J., Pang, J., Cao, Y., Xiong, Y., Li, X., Sun, S., Feng, W., Liu, Z., Xu, J., Zhang, Z., Cheng, D., Zhu, C., Cheng, T., Zhao, Q., Li, B., Lu, X., Zhu, R., Wu, Y., … Lin, D. (2019). MMDetection: Open MMLab Detection Toolbox and Benchmark. ArXiv:1906.07155 [Cs, Eess]. http://arxiv.org/abs/1906.07155
+Cordts, M., Omran, M., Ramos, S., Rehfeld, T., Enzweiler, M., Benenson, R., Franke, U., Roth, S., & Schiele, B. (2016). The Cityscapes Dataset for Semantic Urban Scene Understanding. ArXiv:1604.01685 [Cs]. http://arxiv.org/abs/1604.01685
+Curtis, J. W., Curtis, A., Mapes, J., Szell, A. B., & Cinderich, A. (2013). Using google street view for systematic observation of the built environment: Analysis of spatio-temporal instability of imagery dates. International Journal of Health Geographics, 12(1), 53. https://doi.org/10.1186/1476-072X-12-53
+Davis, J., & Goadrich, M. (2006). The relationship between Precision-Recall and ROC curves. Proceedings of the 23rd International Conference on Machine Learning, 233–240. https://doi.org/10.1145/1143844.1143874
+Deng, J., Dong, W., Socher, R., Li, L.-J., Kai Li, & Li Fei-Fei. (2009). ImageNet: A large-scale hierarchical image database. 2009 IEEE Conference on Computer Vision and Pattern Recognition, 248–255. https://doi.org/10.1109/CVPR.2009.5206848
+Deng, Z., Sun, H., Zhou, S., Zhao, J., Lei, L., & Zou, H. (2018). Multi-scale object detection in remote sensing imagery with convolutional neural networks. ISPRS Journal of Photogrammetry and Remote Sensing, 145, 3–22. https://doi.org/10.1016/j.isprsjprs.2018.04.003
+Felzenszwalb, P. F., & Huttenlocher, D. P. (2004). Efficient Graph-Based Image Segmentation. International Journal of Computer Vision, 59(2), 167–181. https://doi.org/10.1023/B:VISI.0000022288.19776.77
+Flach, P., & Kull, M. (2015). Precision-Recall-Gain Curves: PR Analysis Done Right. In C. Cortes, N. D. Lawrence, D. D. Lee, M. Sugiyama, & R. Garnett (Eds.), Advances in Neural Information Processing Systems 28 (pp. 838–846). Curran Associates, Inc. http://papers.nips.cc/paper/5867-precision-recall-gain-curves-pr-analysis-done-right.pdf
+Geiger, A., Lenz, P., & Urtasun, R. (2012). Are we ready for autonomous driving? The KITTI vision benchmark suite. 2012 IEEE Conference on Computer Vision and Pattern Recognition, 3354–3361. https://doi.org/10.1109/CVPR.2012.6248074
+Girshick, R. (2015). Fast R-CNN. ArXiv:1504.08083 [Cs]. http://arxiv.org/abs/1504.08083
+Girshick, R., Donahue, J., Darrell, T., & Malik, J. (2014). Rich feature hierarchies for accurate object detection and semantic segmentation. ArXiv:1311.2524 [Cs]. http://arxiv.org/abs/1311.2524
+Goel, R., Garcia, L. M. T., Goodman, A., Johnson, R., Aldred, R., Murugesan, M., Brage, S., Bhalla, K., & Woodcock, J. (2018). Estimating city-level travel patterns using street imagery: A case study of using Google Street View in Britain. PLOS ONE, 13(5), e0196521. https://doi.org/10.1371/journal.pone.0196521
+Grimsrud, M., & El-Geneidy, A. (2014). Transit to eternal youth: Lifecycle and generational trends in Greater Montreal public transport mode share. Transportation, 41(1), 1–19. https://doi.org/10.1007/s11116-013-9454-9
+Han, J., Zhang, D., Cheng, G., Guo, L., & Ren, J. (2015). Object Detection in Optical Remote Sensing Images Based on Weakly Supervised Learning and High-Level Feature Learning. IEEE Transactions on Geoscience and Remote Sensing, 53(6), 3325–3337. https://doi.org/10.1109/TGRS.2014.2374218
+He, K., Gkioxari, G., Dollár, P., & Girshick, R. (2018). Mask R-CNN. ArXiv:1703.06870 [Cs]. http://arxiv.org/abs/1703.06870
+He, K., Zhang, X., Ren, S., & Sun, J. (2014). Spatial Pyramid Pooling in Deep Convolutional Networks for Visual Recognition. ArXiv:1406.4729 [Cs], 8691, 346–361. https://doi.org/10.1007/978-3-319-10578-9_23
+He, K., Zhang, X., Ren, S., & Sun, J. (2016). Deep Residual Learning for Image Recognition. 770–778. http://openaccess.thecvf.com/content_cvpr_2016/html/He_Deep_Residual_Learning_CVPR_2016_paper.html
+He M., Pathak S., Muaz U., Zhou J., Saini S., Malinchik S., & Sobolevsky S. (2019). Pattern and Anomaly Detection in Urban Temporal Networks. https://arxiv.org/abs/1912.01960v1
+Huang, X., Wang, P., Cheng, X., Zhou, D., Geng, Q., & Yang, R. (2020). The ApolloScape Open Dataset for Autonomous Driving and its Application. IEEE Transactions on Pattern Analysis and Machine Intelligence, 1–1. https://doi.org/10.1109/TPAMI.2019.2926463
+Jianbo Shi, & Malik, J. (2000). Normalized cuts and image segmentation. IEEE Transactions on Pattern Analysis and Machine Intelligence, 22(8), 888–905. https://doi.org/10.1109/34.868688
+Kalchbrenner, N., Grefenstette, E., & Blunsom, P. (2014). A Convolutional Neural Network for Modelling Sentences. ArXiv:1404.2188 [Cs]. http://arxiv.org/abs/1404.2188
+Krizhevsky, A., Sutskever, I., & Hinton, G. E. (2012). ImageNet Classification with Deep Convolutional Neural Networks. In F. Pereira, C. J. C. Burges, L. Bottou, & K. Q. Weinberger (Eds.), Advances in Neural Information Processing Systems 25 (pp. 1097–1105). Curran Associates, Inc. http://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.pdf
+Leal-Taixé, L., & Roth, S. (Eds.). (2019). Computer Vision – ECCV 2018 Workshops: Munich, Germany, September 8-14, 2018, Proceedings, Part II. Springer International Publishing. https://doi.org/10.1007/978-3-030-11012-3
+Lin, T.-Y., Dollár, P., Girshick, R., He, K., Hariharan, B., & Belongie, S. (2017). Feature Pyramid Networks for Object Detection. ArXiv:1612.03144 [Cs]. http://arxiv.org/abs/1612.03144
+Lin, T.-Y., Goyal, P., Girshick, R., He, K., & Dollár, P. (2018). Focal Loss for Dense Object Detection. ArXiv:1708.02002 [Cs]. http://arxiv.org/abs/1708.02002
+Lin, T.-Y., Maire, M., Belongie, S., Bourdev, L., Girshick, R., Hays, J., Perona, P., Ramanan, D., Zitnick, C. L., & Dollár, P. (2015). Microsoft COCO: Common Objects in Context. ArXiv:1405.0312 [Cs]. http://arxiv.org/abs/1405.0312
+Liu, W., Anguelov, D., Erhan, D., Szegedy, C., Reed, S., Fu, C.-Y., & Berg, A. C. (2016). SSD: Single Shot MultiBox Detector. ArXiv:1512.02325 [Cs], 9905, 21–37. https://doi.org/10.1007/978-3-319-46448-0_2
+Middel, A., Lukasczyk, J., Zakrzewski, S., Arnold, M., & Maciejewski, R. (2019). Urban form and composition of street canyons: A human-centric big data and deep learning approach. Landscape and Urban Planning, 183, 122–132. https://doi.org/10.1016/j.landurbplan.2018.12.001
+Mueller, N., Rojas-Rueda, D., Basagaña, X., Cirach, M., Cole-Hunter, T., Dadvand, P., Donaire-Gonzalez, D., Foraster, M., Gascon, M., Martinez, D., Tonne, C., Triguero-Mas, M., Valentín, A., & Nieuwenhuijsen, M. (2017). Health impacts related to urban and transport planning: A burden of disease assessment. Environment International, 107, 243–257. https://doi.org/10.1016/j.envint.2017.07.020
+Neuhold, G., Ollmann, T., Bulò, S. R., & Kontschieder, P. (2017). The Mapillary Vistas Dataset for Semantic Understanding of Street Scenes. 2017 IEEE International Conference on Computer Vision (ICCV), 5000–5009. https://doi.org/10.1109/ICCV.2017.534
+Ngiam, J., Khosla, A., Kim, M., Nam, J., Lee, H., & Ng, A. Y. (2011, January 1). Multimodal Deep Learning. ICML. https://openreview.net/forum?id=Hk4OO3W_bS
+Nitsche, P., Widhalm, P., Breuss, S., Brändle, N., & Maurer, P. (2014). Supporting large-scale travel surveys with smartphones – A practical approach. Transportation Research Part C: Emerging Technologies, 43, 212–221. https://doi.org/10.1016/j.trc.2013.11.005
+Oka, H., Hagino, Y., Kenmochi, T., Tani, R., Nishi, R., Endo, K., & Fukuda, D. (2019). Predicting travel pattern changes of freight trucks in the Tokyo Metropolitan area based on the latest large-scale urban freight survey and route choice modeling. Transportation Research Part E: Logistics and Transportation Review, 129, 305–324. https://doi.org/10.1016/j.tre.2017.12.011
+Pang, J., Chen, K., Shi, J., Feng, H., Ouyang, W., & Lin, D. (2019). Libra R-CNN: Towards Balanced Learning for Object Detection. ArXiv:1904.02701 [Cs]. http://arxiv.org/abs/1904.02701
+Paszke, A., Gross, S., Massa, F., Lerer, A., Bradbury, J., Chanan, G., Killeen, T., Lin, Z., Gimelshein, N., Antiga, L., Desmaison, A., Kopf, A., Yang, E., DeVito, Z., Raison, M., Tejani, A., Chilamkurthy, S., Steiner, B., Fang, L., … Chintala, S. (2019). PyTorch: An Imperative Style, High-Performance Deep Learning Library. In H. Wallach, H. Larochelle, A. Beygelzimer, F. d\textquotesingle Alché-Buc, E. Fox, & R. Garnett (Eds.), Advances in Neural Information Processing Systems 32 (pp. 8026–8037). Curran Associates, Inc. http://papers.nips.cc/paper/9015-pytorch-an-imperative-style-high-performance-deep-learning-library.pdf
+Pattern Recognition and Computer Vision. (1984, October 1). [Text]. IEEE Computer Society. https://doi.org/10.1109/MC.1984.1658977
+Perez, L., & Wang, J. (2017). The Effectiveness of Data Augmentation in Image Classification using Deep Learning. ArXiv:1712.04621 [Cs]. http://arxiv.org/abs/1712.04621
+Raj, B. (2018, June 4). Data Augmentation | How to use Deep Learning when you have Limited Data—Part 2. Medium. https://medium.com/nanonets/how-to-use-deep-learning-when-you-have-limited-data-part-2-data-augmentation-c26971dc8ced
+Redmon, J., Divvala, S., Girshick, R., & Farhadi, A. (2016). You Only Look Once: Unified, Real-Time Object Detection. ArXiv:1506.02640 [Cs]. http://arxiv.org/abs/1506.02640
+Ren, S., He, K., Girshick, R., & Sun, J. (2016a). Faster R-CNN: Towards Real-Time Object Detection with Region Proposal Networks. ArXiv:1506.01497 [Cs]. http://arxiv.org/abs/1506.01497
+Ren, S., He, K., Girshick, R., & Sun, J. (2016b). Faster R-CNN: Towards Real-Time Object Detection with Region Proposal Networks. ArXiv:1506.01497 [Cs]. http://arxiv.org/abs/1506.01497
+Rezatofighi, H., Tsoi, N., Gwak, J., Sadeghian, A., Reid, I., & Savarese, S. (2019). Generalized Intersection over Union: A Metric and A Loss for Bounding Box Regression. ArXiv:1902.09630 [Cs]. http://arxiv.org/abs/1902.09630
+Ronneberger, O., Fischer, P., & Brox, T. (2015). U-Net: Convolutional Networks for Biomedical Image Segmentation. ArXiv:1505.04597 [Cs]. http://arxiv.org/abs/1505.04597
+Ryu, J., Yang, M.-H., & Lim, J. (2018). DFT-based Transformation Invariant Pooling Layer for Visual Classification. 84–99. http://openaccess.thecvf.com/content_ECCV_2018/html/Jongbin_Ryu_DFT-based_Transformation_Invariant_ECCV_2018_paper.html
+Saha, S. (2018, December 17). A Comprehensive Guide to Convolutional Neural Networks—The ELI5 way. Medium. https://towardsdatascience.com/a-comprehensive-guide-to-convolutional-neural-networks-the-eli5-way-3bd2b1164a53
+Sandeep, A. (2019, March 9). Object Detection -IOU-Intersection Over Union. Medium. https://medium.com/@nagsan16/object-detection-iou-intersection-over-union-73070cb11f6e
+Scherer, D., Müller, A., & Behnke, S. (2010). Evaluation of Pooling Operations in Convolutional Architectures for Object Recognition. In K. Diamantaras, W. Duch, & L. S. Iliadis (Eds.), Artificial Neural Networks – ICANN 2010 (pp. 92–101). Springer. https://doi.org/10.1007/978-3-642-15825-4_10
+Tian, Z., Shen, C., Chen, H., & He, T. (2019). FCOS: Fully Convolutional One-Stage Object Detection. 9627–9636. http://openaccess.thecvf.com/content_ICCV_2019/html/Tian_FCOS_Fully_Convolutional_One-Stage_Object_Detection_ICCV_2019_paper.html
+Uijlings, J. R. R., van de Sande, K. E. A., Gevers, T., & Smeulders, A. W. M. (2013). Selective Search for Object Recognition. International Journal of Computer Vision, 104(2), 154–171. https://doi.org/10.1007/s11263-013-0620-5
+Wang, J., Chen, K., Yang, S., Loy, C. C., & Lin, D. (2019). Region Proposal by Guided Anchoring. ArXiv:1901.03278 [Cs]. http://arxiv.org/abs/1901.03278
+Wang, Z. J., Turko, R., Shaikh, O., Park, H., Das, N., Hohman, F., Kahng, M., & Chau, D. H. (2020). CNN Explainer: Learning Convolutional Neural Networks with Interactive Visualization. ArXiv:2004.15004 [Cs]. http://arxiv.org/abs/2004.15004
+Wu, Y., Chen, Y., Yuan, L., Liu, Z., Wang, L., Li, H., & Fu, Y. (2020). Rethinking Classification and Localization for Object Detection. ArXiv:1904.06493 [Cs]. http://arxiv.org/abs/1904.06493
+Xia, G.-S., Bai, X., Ding, J., Zhu, Z., Belongie, S., Luo, J., Datcu, M., Pelillo, M., & Zhang, L. (2019). DOTA: A Large-scale Dataset for Object Detection in Aerial Images. ArXiv:1711.10398 [Cs]. http://arxiv.org/abs/1711.10398
+Xiaofei Li, Flohr, F., Yue Yang, Hui Xiong, Braun, M., Pan, S., Keqiang Li, & Gavrila, D. M. (2016). A new benchmark for vision-based cyclist detection. 2016 IEEE Intelligent Vehicles Symposium (IV), 1028–1033. https://doi.org/10.1109/IVS.2016.7535515
+Yu, F., Chen, H., Wang, X., Xian, W., Chen, Y., Liu, F., Madhavan, V., & Darrell, T. (2020). BDD100K: A Diverse Driving Dataset for Heterogeneous Multitask Learning. ArXiv:1805.04687 [Cs]. http://arxiv.org/abs/1805.04687
+Zhang, H., Wang, K., Tian, Y., Gou, C., & Wang, F.-Y. (2018). MFR-CNN: Incorporating Multi-Scale Features and Global Information for Traffic Object Detection. IEEE Transactions on Vehicular Technology, 67(9), 8019–8030. https://doi.org/10.1109/TVT.2018.2843394
+Zhang, Sheng, Liu, Y., Jin, L., Wei, Z., & Shen, C. (2020). OPMP: An Omni-directional Pyramid Mask Proposal Network for Arbitrary-shape Scene Text Detection. IEEE Transactions on Multimedia, 1–1. https://doi.org/10.1109/TMM.2020.2978630
+Zhang, Shifeng, Chi, C., Yao, Y., Lei, Z., & Li, S. Z. (2020). Bridging the Gap Between Anchor-based and Anchor-free Detection via Adaptive Training Sample Selection. ArXiv:1912.02424 [Cs]. http://arxiv.org/abs/1912.02424
+Zhao, H., Wijnands, J., Nice, K., Thompson, J., Aschwanden, G., Guo, J., & Stevenson, M. (2019). Reducing Cyclist Crashes by Assessing the Road Environment: An Application of Google Imagery and Machine Learning. Journal of Transport & Health, 14, 100698. https://doi.org/10.1016/j.jth.2019.100698
+Zhao, Y., Barnes, N., Chen, B., Westermann, R., Kong, X., & Lin, C. (Eds.). (2019). Image and Graphics: 10th International Conference, ICIG 2019, Beijing, China, August 23–25, 2019, Proceedings, Part I. Springer International Publishing. https://doi.org/10.1007/978-3-030-34120-6
+Zhou, Z.-H. (2018). A brief introduction to weakly supervised learning. National Science Review, 5(1), 44–53. https://doi.org/10.1093/nsr/nwx106
+
+Appendix
+
+Figure 27: Overview structure of Adaptive Training Sample Selection Algorithm(Shifeng Zhang et al., 2020)Table 7: Some road user samples of eight categories from TMS-Tokyo Dataset
 
 
