@@ -4,7 +4,7 @@
 
 Supervised by  Dr Kerry Nice， the University of Melbourne
 School of Computing and Information Systems, Melbourne School of Engineering
-## This Project belongs to Transport, Health, Urban Design Research Hub (THUD), Melbourne School of Design.
+## This Project is under Transport, Health, Urban Design Research Hub (THUD), Melbourne School of Design.
 ***
 
 # Summary
